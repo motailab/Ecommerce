@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.db.models import Q
+from django.core.paginator import Paginator
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required
@@ -9,7 +11,6 @@ from django.shortcuts import redirect
 from django.utils import timezone
 from .forms import CheckoutForm, CouponForm, RefundForm, PaymentForm
 from .models import Item, OrderItem, Order, Address, Payment, Coupon, Refund, UserProfile
-
 import random
 import string
 import stripe
@@ -75,7 +76,6 @@ class CheckoutView(View):
         try:
             order = Order.objects.get(user=self.request.user, ordered=False)
             if form.is_valid():
-
                 use_default_shipping = form.cleaned_data.get(
                     'use_default_shipping')
                 if use_default_shipping:
@@ -366,6 +366,14 @@ class ItemDetailView(DetailView):
     model = Item
     template_name = "product.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        item = self.get_object()
+        related_item = Item.objects.filter(
+            Q(category=item.category) & ~Q(id=item.id))
+        context['related_item'] = related_item[:3]
+        return context
+
 
 @login_required
 def add_to_cart(request, slug):
@@ -515,3 +523,24 @@ class RequestRefundView(View):
             except ObjectDoesNotExist:
                 messages.info(self.request, "This order does not exist.")
                 return redirect("core:request-refund")
+
+
+class ItemCategoryView(View):
+
+    def get(self, *args, **kwargs):
+        name = kwargs.get('category')
+        items = Item.objects.filter(category=kwargs.get('category'))
+        paginator = Paginator(items, 10)
+        page = self.request.GET.get('page')
+        object_list = paginator.get_page(page)
+        return render(self.request, 'category.html', {'object_list': object_list, 'name': name})
+
+
+def SearchItem(request):
+    q = request.GET.get('q')
+    items = Item.objects.filter(
+        Q(category__icontains=q) | Q(title__icontains=q))
+    paginator = Paginator(items, 10)
+    page = request.GET.get('page')
+    object_list = paginator.get_page(page)
+    return render(request, 'category.html', {'object_list': object_list})
