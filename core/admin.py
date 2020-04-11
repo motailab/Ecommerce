@@ -56,10 +56,7 @@ class AddressAdmin(admin.ModelAdmin):
 
 
 class ItemAdmin(admin.ModelAdmin):
-
-    def change_view(self, request, object_id, form_uri='', extra_context=None):
-        self.exclude = ('slug', )
-        return super().change_view(request, object_id, form_uri, extra_context)
+    exclude = ('slug',)
 
 
 admin.site.register(Item, ItemAdmin)
