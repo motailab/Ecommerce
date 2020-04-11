@@ -55,7 +55,14 @@ class AddressAdmin(admin.ModelAdmin):
     search_fields = ['user', 'street_address', 'apartment_address', 'zip']
 
 
-admin.site.register(Item)
+class ItemAdmin(admin.ModelAdmin):
+
+    def change_view(self, request, object_id, form_uri='', extra_context=None):
+        self.exclude = ('slug', )
+        return super().change_view(request, object_id, form_uri, extra_context)
+
+
+admin.site.register(Item, ItemAdmin)
 admin.site.register(OrderItem)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Payment)

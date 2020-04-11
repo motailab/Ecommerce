@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models import Sum
 from django.shortcuts import reverse
 from django_countries.fields import CountryField
+from django.utils.text import slugify
 
 
 CATEGORY_CHOICES = (
@@ -40,7 +41,7 @@ class Item(models.Model):
     discount_price = models.FloatField(blank=True, null=True)
     category = models.CharField(choices=CATEGORY_CHOICES, max_length=2)
     label = models.CharField(choices=LABEL_CHOICES, max_length=1)
-    slug = models.SlugField()
+    slug = models.SlugField(null=True)
     description = models.TextField()
     image = models.ImageField()
 
@@ -61,6 +62,11 @@ class Item(models.Model):
         return reverse("core:remove-from-cart", kwargs={
             'slug': self.slug
         })
+
+    def save(self, *args, **kwargs):
+        counter = Item.objects.filter(title=self.title).count()
+        self.slug = slugify(self.title) + f"{counter+1}"
+        super().save(*args, **kwargs)
 
 
 class OrderItem(models.Model):
